@@ -168,3 +168,33 @@ def Accuracy(kNearest_, existing_neighbourhood_dictionary):
     average = round(sum/total,5)
     return average
 
+def official_neighbourhoods2(businesses_file):
+    neighbourhood_official = {}
+    for x in tqdm(range(businesses_file.shape[0])):
+        neighbourhood_official[(businesses_file.iloc[x,0])] = businesses_file.iloc[x,29]
+    return neighbourhood_official
+
+def kNearestData(test_file, xtrain_comments_file, existing_neighbourhoods_xtrain, cos_sim, k): #want to specify the size  
+    kNearest = {}   
+    hit_ratio_list = []
+    results_sf = []
+    # Have a dictionary stating the business and the neighbourhood, for ex. {2: 'A', 3: 'C', 6: 'C'}
+    for row in tqdm(range(len(cos_sim))):
+        possible_neighbours = []
+        for col in range(len(cos_sim[0])):
+             possible_neighbours.append((cos_sim[row][col], existing_neighbourhoods_xtrain[xtrain_comments_file.iloc[col,1]]))
+        possible_neighbours.sort(key=lambda x: x[0], reverse=True)
+        votes = Counter()
+        for index in range(k):
+            votes[possible_neighbours[index][1]] += 1         
+        kNearest[test_file.iloc[row,1]] = votes.most_common(1)[0][0]
+        if existing_neighbourhoods_xtrain[test_file.iloc[row,1]] in votes.keys():        
+            hit_ratio_list.append(round(votes[existing_neighbourhoods_xtrain[test_file.iloc[row,1]]]/k,4))
+            if existing_neighbourhoods_xtrain[test_file.iloc[row,1]] == votes.most_common(1)[0][0]:
+                results_sf.append("Success")
+            else:
+                results_sf.append("Fail")
+        else: 
+            hit_ratio_list.append(0)
+            results_sf.append("Fail")
+    return kNearest, votes, hit_ratio_list, results_sf
